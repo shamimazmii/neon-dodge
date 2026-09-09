@@ -1,0 +1,60 @@
+name: Build and deploy Neon Dodge
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: neon-dodge-production
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+  deploy:
+    needs: build
+    runs-on: [self-hosted, linux, x64, neon-dodge]
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Deploy to uwais
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          printf '%s' "$GHCR_TOKEN" | ssh -o StrictHostKeyChecking=accept-new uwais@192.168.0.46 \
+            "docker login ghcr.io -u '$GHCR_USER' --password-stdin"
+
+          ssh uwais@192.168.0.46 \
+            "cd /home/uwais/neon-dodge && docker compose pull && docker compose up -d --remove-orphans"
+
+          ssh uwais@192.168.0.46 \
+            "curl --fail --silent http://127.0.0.1:8082/ >/dev/null"
