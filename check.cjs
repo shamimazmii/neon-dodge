@@ -1,0 +1,7 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const elements={},events={},registered=[];let frame;
+const ctx=new Proxy({},{get:()=>()=>{},set:()=>true});
+function el(id){return elements[id]??={textContent:'',innerHTML:'',classList:{add(){},remove(){}},addEventListener(n,f){this[n]=f},getContext:()=>ctx,setPointerCapture(){}}}
+const sandbox={document:{getElementById:el,addEventListener(){},modelContext:{registerTool:t=>registered.push(t)}},window:{addEventListener:(n,f)=>events[n]=f},localStorage:{getItem:()=>null,setItem(){}},requestAnimationFrame:f=>frame=f,Math,Promise};
+vm.runInNewContext(fs.readFileSync('dist/game.js','utf8'),sandbox);
+const tool=registered[0];assert.equal(tool.name,'control_neon_dodge');assert.throws(()=>tool.execute({action:'bad'}));assert.equal(tool.execute({action:'start'}).state,'playing');for(let t=16;t<700;t+=16)frame(t);assert.ok(tool.execute({action:'status'}).score>0);assert.equal(tool.execute({action:'pause'}).state,'paused');const score=tool.execute({action:'status'}).score;frame(720);assert.equal(tool.execute({action:'status'}).score,score);assert.equal(tool.execute({action:'resume'}).state,'playing');events.blur();assert.equal(tool.execute({action:'status'}).state,'paused');assert.equal(tool.execute({action:'start'}).score,0);console.log('PASS: start, scoring, pause, resume, blur, restart and tool validation');
