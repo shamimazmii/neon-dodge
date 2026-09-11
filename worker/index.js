@@ -21,7 +21,7 @@ async function readScores(database) {
     SELECT name, score, seconds
     FROM leaderboard_scores
     ORDER BY score DESC, seconds DESC, name ASC
-    LIMIT 10
+    LIMIT 100
   `).all();
   return result.results || [];
 }

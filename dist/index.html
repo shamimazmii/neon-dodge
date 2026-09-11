@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101219">
   <meta name="description" content="Dodge red blocks, collect energy, and climb the Neon Dodge leaderboard.">
   <title>Neon Dodge — Arcade</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20260911c">
 </head>
 <body>
   <main>
@@ -27,10 +27,8 @@
       <div class="hud">
         <div><span>SCORE</span><strong id="score">0000</strong></div>
         <div><span>TIME</span><strong id="time">0.0s</strong></div>
-        <div class="player-badge"><span>PLAYER</span><strong id="playerLabel">GUEST</strong></div>
         <div class="hud-actions">
           <button id="sound" aria-label="Mute sound" aria-pressed="false">♪ <span>Sound</span></button>
-          <button id="leaderboard" disabled>⌁ <span>Top 10</span></button>
           <button id="pause" disabled aria-label="Pause game">Ⅱ <span>Pause</span></button>
         </div>
       </div>
@@ -38,19 +36,18 @@
       <div class="stage">
         <canvas id="game" width="900" height="510" aria-label="Game arena. Move with the left and right arrow keys or A and D."></canvas>
         <div class="overlay" id="overlay">
-          <span class="pill" id="tag">ENTER THE ARCADE</span>
-          <h2 id="heading">Choose your<br>player name</h2>
-          <p id="message">Your best score will be saved to the leaderboard.</p>
-          <div class="player-setup" id="playerSetup">
-            <label for="playerName">PLAYER NAME</label>
+          <span class="pill" id="tag">READY FOR THE CHALLENGE?</span>
+          <h2 id="heading">How long can<br>you survive?</h2>
+          <p id="message">Dodge red blocks. Collect yellow energy.<br>One collision ends the game.</p>
+          <div class="player-setup hidden" id="playerSetup">
+            <label for="playerName">SAVE YOUR SCORE AS</label>
             <input id="playerName" maxlength="18" autocomplete="nickname" placeholder="e.g. SHAMIM" aria-describedby="nameError">
             <small id="nameError" role="alert"></small>
           </div>
           <div class="overlay-actions">
-            <button class="primary" id="start" disabled>Start game <span>→</span></button>
-            <button class="secondary hidden" id="overlayLeaderboard">View leaderboard</button>
+            <button class="primary" id="start">Start game <span>→</span></button>
           </div>
-          <small id="hint">ENTER A NAME TO START</small>
+          <small id="hint">PRESS SPACE TO START</small>
         </div>
       </div>
 
@@ -64,7 +61,6 @@
 
     <footer>
       <p><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> to move <b>·</b> <kbd>Space</kbd> to pause</p>
-      <button class="text-button" id="changePlayer">Change player</button>
     </footer>
 
     <div class="touch">
@@ -75,15 +71,15 @@
   <div class="board-modal hidden" id="boardModal" role="dialog" aria-modal="true" aria-labelledby="boardTitle">
     <div class="board-card">
       <div class="board-head">
-        <div><p class="eyebrow">HALL OF FAME</p><h2 id="boardTitle">TOP 10 PLAYERS</h2></div>
+        <div><p class="eyebrow">HALL OF FAME</p><h2 id="boardTitle">LEADERBOARD</h2></div>
         <button id="closeBoard" aria-label="Close leaderboard">×</button>
       </div>
       <p class="board-status" id="boardStatus" aria-live="polite">Loading scores…</p>
       <ol class="score-list" id="scoreList"></ol>
-      <div class="board-foot"><span>PLAYER: <strong id="boardPlayer">—</strong></span><button id="boardPlay" class="primary">Play now <span>→</span></button></div>
+      <div class="board-foot"><span>SCORE SAVED AS <strong id="boardPlayer">—</strong></span><button id="boardPlay" class="primary">Play again <span>→</span></button></div>
     </div>
   </div>
 
-  <script src="game.js"></script>
+  <script src="game.js?v=20260911c"></script>
 </body>
 </html>

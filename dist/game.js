@@ -5,8 +5,8 @@
   const ctx = canvas.getContext('2d');
   const ids = [
     'score','time','best','overlay','heading','message','start','pause','tag','hint','sound',
-    'leaderboard','playerLabel','playerSetup','playerName','nameError','overlayLeaderboard',
-    'boardModal','boardStatus','scoreList','boardPlayer','closeBoard','boardPlay','changePlayer'
+    'playerSetup','playerName','nameError','boardModal','boardStatus','scoreList','boardPlayer',
+    'closeBoard','boardPlay'
   ];
   const ui = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
   const W = 900;
@@ -24,6 +24,7 @@
   let coin = 0;
   let last = 0;
   let currentPlayer = '';
+  let pendingScore = null;
   let cachedScores = [];
   const player = { x: 450, y: 458, w: 32, h: 22 };
 
@@ -102,33 +103,24 @@
   function setPlayer(name) {
     currentPlayer = cleanName(name);
     if (nameError(currentPlayer)) return false;
-    try {
-      localStorage.setItem('neon-dodge-player', currentPlayer);
-      best = Number(localStorage.getItem(`neon-dodge-best:${playerKey(currentPlayer)}`)) || 0;
-    } catch { best = 0; }
-    ui.playerLabel.textContent = currentPlayer.toUpperCase();
+    try { localStorage.setItem('neon-dodge-player', currentPlayer); } catch {}
     ui.boardPlayer.textContent = currentPlayer.toUpperCase();
-    ui.best.textContent = String(best).padStart(4, '0');
-    ui.leaderboard.disabled = false;
-    ui.start.disabled = false;
     return true;
   }
 
-  function showNameGate(copy = 'Your best score will be saved to the leaderboard.') {
-    state = 'ready';
+  function showScoreEntry(finalScore, seconds, isRecord) {
     ui.overlay.classList.remove('hidden');
     ui.playerSetup.classList.remove('hidden');
-    ui.overlayLeaderboard.classList.add('hidden');
-    ui.tag.textContent = 'ENTER THE ARCADE';
-    ui.heading.innerHTML = 'Choose your<br>player name';
-    ui.message.textContent = copy;
-    ui.start.innerHTML = 'Start game <span>→</span>';
+    ui.tag.textContent = isRecord ? 'NEW PERSONAL BEST!' : 'RUN COMPLETE';
+    ui.heading.innerHTML = 'Save your score';
+    ui.message.textContent = `Score ${finalScore} · Survived ${seconds.toFixed(1)} seconds. Enter your name to join the leaderboard.`;
+    ui.start.innerHTML = 'Save score <span>→</span>';
     ui.start.disabled = Boolean(nameError(cleanName(ui.playerName.value)));
-    ui.hint.textContent = 'ENTER A NAME TO START';
+    ui.hint.textContent = 'NAME REQUIRED TO VIEW LEADERBOARD';
     setTimeout(() => ui.playerName.focus(), 0);
   }
 
-  function gameOverlay(tag, title, message, label, showBoard = false) {
+  function gameOverlay(tag, title, message, label) {
     ui.overlay.classList.remove('hidden');
     ui.playerSetup.classList.add('hidden');
     ui.tag.textContent = tag;
@@ -136,7 +128,6 @@
     ui.message.textContent = message;
     ui.start.innerHTML = `${label} <span>→</span>`;
     ui.start.disabled = false;
-    ui.overlayLeaderboard.classList.toggle('hidden', !showBoard);
     ui.hint.textContent = state === 'paused' ? 'PRESS SPACE TO RESUME' : 'PRESS SPACE TO START';
   }
 
@@ -151,7 +142,6 @@
   }
 
   function start() {
-    if (!currentPlayer && !confirmPlayer()) return;
     if (state === 'paused') {
       state = 'playing';
       ui.overlay.classList.add('hidden');
@@ -161,6 +151,7 @@
     }
     elapsed = 0;
     score = 0;
+    pendingScore = null;
     objects = [];
     sparks = [];
     spawn = .4;
@@ -204,7 +195,7 @@
       const previous = byPlayer.get(key);
       if (!previous || safe.score > previous.score || (safe.score === previous.score && safe.seconds > previous.seconds)) byPlayer.set(key, safe);
     }
-    return [...byPlayer.values()].sort((a, b) => b.score - a.score || b.seconds - a.seconds || a.name.localeCompare(b.name)).slice(0, 10);
+    return [...byPlayer.values()].sort((a, b) => b.score - a.score || b.seconds - a.seconds || a.name.localeCompare(b.name)).slice(0, 100);
   }
 
   function saveLocalScore(entry) {
@@ -269,17 +260,31 @@
   }
 
   async function openLeaderboard() {
-    if (!currentPlayer) {
-      showNameGate('Enter your player name before viewing the leaderboard.');
-      return;
-    }
-    if (state === 'playing') pause();
     ui.boardModal.classList.remove('hidden');
     ui.boardStatus.classList.remove('hidden');
     ui.boardStatus.textContent = 'Loading scores…';
     ui.scoreList.textContent = '';
     ui.closeBoard.focus();
     renderScores(await loadScores());
+  }
+
+  async function saveAndShowLeaderboard() {
+    if (!pendingScore || !confirmPlayer()) return;
+    ui.start.disabled = true;
+    ui.start.innerHTML = 'Saving…';
+    await submitScore({ ...pendingScore, name: currentPlayer });
+    const savedScore = pendingScore;
+    pendingScore = null;
+    gameOverlay('SCORE SAVED', 'You made the board', `Score ${savedScore.score} saved as ${currentPlayer}.`, 'Play again');
+    await openLeaderboard();
+  }
+
+  function handlePrimaryAction() {
+    if (state === 'over' && pendingScore) {
+      saveAndShowLeaderboard();
+      return;
+    }
+    start();
   }
 
   function closeLeaderboard() {
@@ -294,10 +299,10 @@
     const finalScore = Math.floor(score);
     const isRecord = finalScore > best;
     best = Math.max(best, finalScore);
-    try { localStorage.setItem(`neon-dodge-best:${playerKey(currentPlayer)}`, String(best)); } catch {}
+    try { localStorage.setItem('neon-dodge-best', String(best)); } catch {}
     ui.best.textContent = String(best).padStart(4, '0');
-    submitScore({ name: currentPlayer, score: finalScore, seconds: Number(elapsed.toFixed(1)) });
-    gameOverlay(isRecord ? 'NEW PERSONAL BEST!' : 'TRY AGAIN?', 'Oops, you got hit!', `Score ${finalScore} · Survived ${elapsed.toFixed(1)} seconds.`, 'Play again', true);
+    pendingScore = { score: finalScore, seconds: Number(elapsed.toFixed(1)) };
+    showScoreEntry(finalScore, elapsed, isRecord);
     audio.play('crash');
     if (isRecord) setTimeout(() => audio.play('record'), 340);
   }
@@ -408,31 +413,13 @@
     ui.nameError.textContent = ui.playerName.value ? error : '';
     ui.start.disabled = Boolean(error);
   });
-  ui.playerName.addEventListener('keydown', event => { if (event.key === 'Enter' && !ui.start.disabled) start(); });
-  ui.start.addEventListener('click', start);
+  ui.playerName.addEventListener('keydown', event => { if (event.key === 'Enter' && !ui.start.disabled) handlePrimaryAction(); });
+  ui.start.addEventListener('click', handlePrimaryAction);
   ui.pause.addEventListener('click', () => state === 'paused' ? start() : pause());
   ui.sound.addEventListener('click', () => audio.toggle());
-  ui.leaderboard.addEventListener('click', openLeaderboard);
-  ui.overlayLeaderboard.addEventListener('click', openLeaderboard);
   ui.closeBoard.addEventListener('click', closeLeaderboard);
   ui.boardPlay.addEventListener('click', () => { closeLeaderboard(); start(); });
   ui.boardModal.addEventListener('click', event => { if (event.target === ui.boardModal) closeLeaderboard(); });
-  ui.changePlayer.addEventListener('click', () => {
-    if (state === 'playing') pause();
-    try { localStorage.removeItem('neon-dodge-player'); } catch {}
-    currentPlayer = '';
-    best = 0;
-    score = 0;
-    elapsed = 0;
-    objects = [];
-    sparks = [];
-    updateHud();
-    ui.best.textContent = '0000';
-    ui.playerLabel.textContent = 'GUEST';
-    ui.leaderboard.disabled = true;
-    ui.playerName.value = '';
-    showNameGate();
-  });
 
   window.addEventListener('keydown', event => {
     if (event.key === 'Escape' && !ui.boardModal.classList.contains('hidden')) { closeLeaderboard(); return; }
@@ -440,8 +427,9 @@
     const key = event.key.toLowerCase();
     if (['ArrowLeft', 'ArrowRight', ' '].includes(event.key)) event.preventDefault();
     if (event.code === 'Space' && !event.repeat) {
-      if (!currentPlayer) { showNameGate(); return; }
-      state === 'playing' ? pause() : start();
+      if (state === 'playing') pause();
+      else if (state === 'paused' || state === 'ready') start();
+      else ui.playerName.focus();
       return;
     }
     keys.add(event.key.startsWith('Arrow') ? event.key : key);
@@ -464,7 +452,7 @@
     try {
       Promise.resolve(document.modelContext.registerTool({
         name: 'control_neon_dodge',
-        description: 'Set a player name, start, pause or resume Neon Dodge, and read the current score or leaderboard.',
+        description: 'Start, pause or resume Neon Dodge, set a name after a run, and read the current score or leaderboard.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -478,7 +466,11 @@
         execute(input) {
           if (!input || !['set_name', 'start', 'pause', 'resume', 'status', 'leaderboard'].includes(input.action)) throw new Error('Invalid action');
           if (input.action === 'set_name' && (!input.name || !setPlayer(input.name))) throw new Error('A valid player name is required');
-          if (input.action === 'start' && currentPlayer) { if (state === 'paused') state = 'over'; start(); }
+          if (input.action === 'start') {
+            if (state === 'paused' || state === 'over') state = 'over';
+            pendingScore = null;
+            start();
+          }
           if (input.action === 'pause') pause();
           if (input.action === 'resume' && state === 'paused') start();
           return {
@@ -487,7 +479,7 @@
             seconds: Number(elapsed.toFixed(1)),
             best,
             player: currentPlayer || null,
-            needsName: !currentPlayer,
+            needsName: state === 'over' && Boolean(pendingScore),
             leaderboard: input.action === 'leaderboard' ? cachedScores : undefined
           };
         }
@@ -497,11 +489,10 @@
 
   audio.updateButton();
   try {
-    const savedPlayer = cleanName(localStorage.getItem('neon-dodge-player'));
-    if (savedPlayer && setPlayer(savedPlayer)) {
-      ui.playerName.value = savedPlayer;
-      gameOverlay('READY FOR THE CHALLENGE?', 'How long can<br>you survive?', 'Dodge red blocks. Collect yellow energy. One collision ends the game.', 'Start game');
-    } else showNameGate();
-  } catch { showNameGate(); }
+    best = Number(localStorage.getItem('neon-dodge-best')) || 0;
+    ui.best.textContent = String(best).padStart(4, '0');
+    ui.playerName.value = cleanName(localStorage.getItem('neon-dodge-player'));
+  } catch {}
+  gameOverlay('READY FOR THE CHALLENGE?', 'How long can<br>you survive?', 'Dodge red blocks. Collect yellow energy. One collision ends the game.', 'Start game');
   requestAnimationFrame(frame);
 })();

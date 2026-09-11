@@ -68,18 +68,21 @@ const sandbox = {
 };
 
 const html = fs.readFileSync('dist/index.html', 'utf8');
-for (const requiredId of ['playerName', 'leaderboard', 'sound', 'boardModal', 'scoreList']) {
+for (const requiredId of ['playerName', 'sound', 'boardModal', 'scoreList']) {
   assert.match(html, new RegExp(`id="${requiredId}"`));
 }
+assert.doesNotMatch(html, /Top 10/i);
+assert.match(html, /class="player-setup hidden" id="playerSetup"/);
+assert.doesNotMatch(html, /id="start" disabled/);
 
 vm.runInNewContext(fs.readFileSync('dist/game.js', 'utf8'), sandbox);
 const tool = registered[0];
 assert.equal(tool.name, 'control_neon_dodge');
 assert.throws(() => tool.execute({ action: 'bad' }));
-assert.equal(tool.execute({ action: 'status' }).needsName, true);
+assert.equal(tool.execute({ action: 'status' }).needsName, false);
 assert.throws(() => tool.execute({ action: 'set_name', name: '<script>' }));
-assert.equal(tool.execute({ action: 'set_name', name: 'Neon Ace' }).player, 'Neon Ace');
 assert.equal(tool.execute({ action: 'start' }).state, 'playing');
+assert.equal(tool.execute({ action: 'set_name', name: 'Neon Ace' }).player, 'Neon Ace');
 
 for (let timestamp = 16; timestamp < 700; timestamp += 16) frame(timestamp);
 assert.ok(tool.execute({ action: 'status' }).score > 0);
@@ -92,4 +95,4 @@ events.blur();
 assert.equal(tool.execute({ action: 'status' }).state, 'paused');
 assert.equal(tool.execute({ action: 'start' }).score, 0);
 
-console.log('PASS: name gate, validation, sound UI, scoring, pause, resume, restart and leaderboard controls');
+console.log('PASS: instant start, validation, sound UI, scoring, pause, resume, restart and leaderboard controls');

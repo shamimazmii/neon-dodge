@@ -19,8 +19,10 @@ for (const path of [
 
 const html = await readFile(resolve(projectRoot, 'dist/client/index.html'), 'utf8');
 assert.match(html, /id="playerName"/);
-assert.match(html, /id="leaderboard"/);
 assert.match(html, /id="sound"/);
+assert.doesNotMatch(html, /Top 10/i);
+assert.match(html, /class="player-setup hidden" id="playerSetup"/);
+assert.doesNotMatch(html, /id="start" disabled/);
 
 const workerUrl = pathToFileURL(resolve(projectRoot, 'dist/server/index.js'));
 workerUrl.searchParams.set('validate', String(Date.now()));
@@ -34,7 +36,7 @@ const database = {
       values: [],
       bind(...values) { this.values = values; return this; },
       async all() {
-        return { results: [...rows].sort((a, b) => b.score - a.score || b.seconds - a.seconds).slice(0, 10) };
+        return { results: [...rows].sort((a, b) => b.score - a.score || b.seconds - a.seconds).slice(0, 100) };
       },
       async run() {
         const [playerKey, name, score, seconds, updatedAt] = this.values;

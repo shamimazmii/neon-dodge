@@ -38,7 +38,7 @@ function normalizeScores(scores) {
   }
   return [...byPlayer.values()]
     .sort((a, b) => b.score - a.score || b.seconds - a.seconds || a.name.localeCompare(b.name))
-    .slice(0, 10);
+    .slice(0, 100);
 }
 
 async function readScores() {
@@ -119,7 +119,7 @@ http.createServer(async (request, response) => {
   const [filename, contentType] = asset;
   response.writeHead(200, {
     'Content-Type': contentType,
-    'Cache-Control': filename === 'index.html' ? 'no-cache' : 'public, max-age=3600',
+    'Cache-Control': 'no-cache',
     'X-Content-Type-Options': 'nosniff'
   });
   fs.createReadStream(path.join(publicDir, filename)).pipe(response);
