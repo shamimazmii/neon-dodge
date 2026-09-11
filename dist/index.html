@@ -1,3 +1,89 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#101219"><meta name="description" content="Dodge red blocks, collect energy, and break records in Neon Dodge."><title>Neon Dodge — Arcade</title><link rel="stylesheet" href="style.css"></head>
-<body><main><header><a class="brand" href="./">N<span>↯</span>D <small>NEON DODGE</small></a><span class="edition">MINI ARCADE / 001</span></header><section class="top"><div><p class="eyebrow">DODGE. COLLECT. SURVIVE.</p><h1>NEON <span>DODGE</span></h1></div><div class="record"><span>BEST ON THIS DEVICE</span><strong id="best">0000</strong></div></section><section class="cabinet" aria-label="Neon Dodge game"><div class="hud"><div><span>SCORE</span><strong id="score">0000</strong></div><div><span>TIME</span><strong id="time">0.0s</strong></div><button id="pause" disabled aria-label="Pause game">Ⅱ <span>Pause</span></button></div><div class="stage"><canvas id="game" width="900" height="510" aria-label="Game arena. Move with the left and right arrow keys or A and D."></canvas><div class="overlay" id="overlay"><span class="pill" id="tag">READY FOR THE CHALLENGE?</span><h2 id="heading">How long can<br>you survive?</h2><p id="message">Dodge red blocks. Collect yellow energy.<br>One collision ends the game.</p><button class="primary" id="start">Start game <span>→</span></button><small id="hint">PRESS SPACE TO START</small></div></div><div class="bottom"><span><i class="cyan"></i> YOU</span><span><i class="red"></i> DODGE</span><span><i class="yellow"></i> +50 POINTS</span><span class="speed">THE LONGER YOU LAST, THE FASTER IT GETS</span></div></section><footer><p><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> to move <b>·</b> <kbd>Space</kbd> to pause</p><span>Don't let the red blocks touch you.</span></footer><div class="touch"><button id="left" aria-label="Move left">←</button><span>PRESS & HOLD</span><button id="right" aria-label="Move right">→</button></div></main><script src="game.js"></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101219">
+  <meta name="description" content="Dodge red blocks, collect energy, and climb the Neon Dodge leaderboard.">
+  <title>Neon Dodge — Arcade</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <header>
+      <a class="brand" href="./">N<span>↯</span>D <small>NEON DODGE</small></a>
+      <span class="edition">MINI ARCADE / 001</span>
+    </header>
+
+    <section class="top">
+      <div>
+        <p class="eyebrow">DODGE. COLLECT. SURVIVE.</p>
+        <h1>NEON <span>DODGE</span></h1>
+      </div>
+      <div class="record"><span>YOUR BEST</span><strong id="best">0000</strong></div>
+    </section>
+
+    <section class="cabinet" aria-label="Neon Dodge game">
+      <div class="hud">
+        <div><span>SCORE</span><strong id="score">0000</strong></div>
+        <div><span>TIME</span><strong id="time">0.0s</strong></div>
+        <div class="player-badge"><span>PLAYER</span><strong id="playerLabel">GUEST</strong></div>
+        <div class="hud-actions">
+          <button id="sound" aria-label="Mute sound" aria-pressed="false">♪ <span>Sound</span></button>
+          <button id="leaderboard" disabled>⌁ <span>Top 10</span></button>
+          <button id="pause" disabled aria-label="Pause game">Ⅱ <span>Pause</span></button>
+        </div>
+      </div>
+
+      <div class="stage">
+        <canvas id="game" width="900" height="510" aria-label="Game arena. Move with the left and right arrow keys or A and D."></canvas>
+        <div class="overlay" id="overlay">
+          <span class="pill" id="tag">ENTER THE ARCADE</span>
+          <h2 id="heading">Choose your<br>player name</h2>
+          <p id="message">Your best score will be saved to the leaderboard.</p>
+          <div class="player-setup" id="playerSetup">
+            <label for="playerName">PLAYER NAME</label>
+            <input id="playerName" maxlength="18" autocomplete="nickname" placeholder="e.g. SHAMIM" aria-describedby="nameError">
+            <small id="nameError" role="alert"></small>
+          </div>
+          <div class="overlay-actions">
+            <button class="primary" id="start" disabled>Start game <span>→</span></button>
+            <button class="secondary hidden" id="overlayLeaderboard">View leaderboard</button>
+          </div>
+          <small id="hint">ENTER A NAME TO START</small>
+        </div>
+      </div>
+
+      <div class="bottom">
+        <span><i class="cyan"></i> YOU</span>
+        <span><i class="red"></i> DODGE</span>
+        <span><i class="yellow"></i> +50 POINTS</span>
+        <span class="speed">THE LONGER YOU LAST, THE FASTER IT GETS</span>
+      </div>
+    </section>
+
+    <footer>
+      <p><kbd>←</kbd> <kbd>→</kbd> or <kbd>A</kbd> <kbd>D</kbd> to move <b>·</b> <kbd>Space</kbd> to pause</p>
+      <button class="text-button" id="changePlayer">Change player</button>
+    </footer>
+
+    <div class="touch">
+      <button id="left" aria-label="Move left">←</button><span>PRESS &amp; HOLD</span><button id="right" aria-label="Move right">→</button>
+    </div>
+  </main>
+
+  <div class="board-modal hidden" id="boardModal" role="dialog" aria-modal="true" aria-labelledby="boardTitle">
+    <div class="board-card">
+      <div class="board-head">
+        <div><p class="eyebrow">HALL OF FAME</p><h2 id="boardTitle">TOP 10 PLAYERS</h2></div>
+        <button id="closeBoard" aria-label="Close leaderboard">×</button>
+      </div>
+      <p class="board-status" id="boardStatus" aria-live="polite">Loading scores…</p>
+      <ol class="score-list" id="scoreList"></ol>
+      <div class="board-foot"><span>PLAYER: <strong id="boardPlayer">—</strong></span><button id="boardPlay" class="primary">Play now <span>→</span></button></div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

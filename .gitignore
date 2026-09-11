@@ -1,0 +1,7 @@
+data/*.json
+data/*.tmp
+.sites-runtime/
+node_modules/
+dist/client/
+dist/server/
+dist/.openai/
